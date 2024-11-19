@@ -1,24 +1,87 @@
 <?php
+require 'vendor/autoload.php'; // Include Composer autoloader
 
-require "init.php";
+// Load environment variables from the .env file
+$dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
+$dotenv->load();
 
-$customer_id = 'cus_RCf3hkLIq1M2As';
-$invoice = $stripe->invoices->create([
-    'customer' => $customer_id
-]);
+// Set your Stripe secret key
+$stripe = new \Stripe\StripeClient($_ENV['STRIPE_SECRET_KEY']);
 
-$products = $stripe->products->all();
-foreach ($products as $product)
-{
-    $stripe->invoiceItems->create([
-        'customer' => $customer_id,
-        'price' => $product->default_price,
-        'invoice' => $invoice->id
-    ]);
+// Fetch all customers and products
+$customers = $stripe->customers->all(['limit' => 10]); // Fetch first 10 customers
+$products = $stripe->products->all(); // Fetch all products
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    try {
+        // Retrieve selected customer ID
+        $customerId = $_POST['customer_id'];
+
+        // Create a new invoice
+        $invoice = $stripe->invoices->create([
+            'customer' => $customerId,
+        ]);
+
+        // Add selected products as line items
+        if (!empty($_POST['product_ids'])) {
+            foreach ($_POST['product_ids'] as $productId) {
+                $prices = $stripe->prices->all(['product' => $productId]);
+                foreach ($prices->data as $price) {
+                    if ($price->type === 'one_time') {
+                        $stripe->invoiceItems->create([
+                            'customer' => $customerId,
+                            'price' => $price->id,
+                            'invoice' => $invoice->id,
+                        ]);
+                    }
+                }
+            }
+        }
+
+        // Finalize the invoice
+        $stripe->invoices->finalizeInvoice($invoice->id);
+
+        // Retrieve the finalized invoice
+        $invoice = $stripe->invoices->retrieve($invoice->id);
+
+        // Display Invoice Links
+        echo "<p>Invoice created successfully!</p>";
+        echo "<a href='{$invoice->hosted_invoice_url}' target='_blank'>Pay Invoice</a><br>";
+        echo "<a href='{$invoice->invoice_pdf}' target='_blank'>Download PDF</a>";
+    } catch (\Stripe\Exception\ApiErrorException $e) {
+        echo "Error: " . $e->getMessage();
+    }
 }
+?>
 
-$stripe->invoices->finalizeInvoice($invoice->id);
-$invoice = $stripe->invoices->retrieve($invoice->id);
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Invoice</title>
+</head>
+<body>
+    <h1>Create Invoice</h1>
+    <form method="POST" action="">
+        <label for="customer">Select Customer:</label>
+        <select name="customer_id" id="customer" required>
+            <?php foreach ($customers->data as $customer): ?>
+                <option value="<?= htmlspecialchars($customer->id) ?>">
+                    <?= htmlspecialchars($customer->name) ?: $customer->email ?>
+                </option>
+            <?php endforeach; ?>
+        </select>
+        <br><br>
 
-print_r($invoice->hosted_invoice_url);
-print_r($invoice->invoice_pdf);
+        <label>Select Products:</label><br>
+        <?php foreach ($products->data as $product): ?>
+            <input type="checkbox" name="product_ids[]" value="<?= htmlspecialchars($product->id) ?>">
+            <?= htmlspecialchars($product->name) ?><br>
+        <?php endforeach; ?>
+        <br>
+
+        <button type="submit">Generate Invoice</button>
+    </form>
+</body>
+</html>
