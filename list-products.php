@@ -1,21 +1,21 @@
 <?php
-require 'vendor/autoload.php'; // Include Composer's autoloader
+require 'vendor/autoload.php'; 
 
-// Load environment variables from the .env file
+
 $dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
 $dotenv->load();
 
-// Get the Stripe Secret Key from the environment variables
+
 $stripeSecretKey = $_ENV['STRIPE_SECRET_KEY'];
 
-// Set your Stripe API Key
+
 \Stripe\Stripe::setApiKey($stripeSecretKey);
 
 try {
-    // Retrieve the list of products
+ 
     $products = \Stripe\Product::all();
 
-    // Start building the HTML output
+   
     echo "<h1 style='text-align: center; font-family: Arial, sans-serif;'>Available Products</h1>";
     echo "<div style='display: flex; flex-wrap: wrap; justify-content: center;'>";
 

@@ -1,20 +1,20 @@
 <?php
-require 'vendor/autoload.php'; // Include the Composer autoloader
+require 'vendor/autoload.php'; 
 
-// Load environment variables from the .env file
+
 $dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
 $dotenv->load();
 
-// Retrieve the Stripe secret key from the .env file
-$stripeSecretKey = $_ENV['STRIPE_SECRET_KEY']; // Ensure this matches the key in your .env file
 
-$message = ""; // Initialize a message variable for feedback
+$stripeSecretKey = $_ENV['STRIPE_SECRET_KEY']; 
+
+$message = ""; 
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    \Stripe\Stripe::setApiKey($stripeSecretKey); // Use the key from the .env file
+    \Stripe\Stripe::setApiKey($stripeSecretKey); 
 
     try {
-        // Create a customer using the Stripe API
+        
         $customer = \Stripe\Customer::create([
             'name' => $_POST['name'],
             'email' => $_POST['email'],

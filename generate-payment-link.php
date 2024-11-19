@@ -1,24 +1,24 @@
 <?php
-require 'vendor/autoload.php'; // Include Composer autoloader
+require 'vendor/autoload.php'; 
 
-// Load environment variables from the .env file
+
 $dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
 $dotenv->load();
 
-// Set your Stripe API key
+
 $stripe = new \Stripe\StripeClient($_ENV['STRIPE_SECRET_KEY']);
 
-// Fetch all products
+
 $products = $stripe->products->all();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
-        // Prepare line items for the payment link
+       
         $lineItems = [];
 
         if (!empty($_POST['product_ids'])) {
             foreach ($_POST['product_ids'] as $productId) {
-                // Fetch prices for the product
+              
                 $prices = $stripe->prices->all(['product' => $productId]);
                 foreach ($prices->data as $price) {
                     if ($price->type === 'one_time') {
@@ -31,12 +31,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        // Generate a payment link with the selected products
+      
         $paymentLink = $stripe->paymentLinks->create([
             'line_items' => $lineItems,
         ]);
 
-        // Store the payment link URL
+        
         $paymentUrl = $paymentLink->url;
 
         echo "<p>Payment Link successfully created!</p>";
@@ -47,8 +47,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Fetch successful payments
-$payments = $stripe->paymentIntents->all(['limit' => 10]); // Fetch the last 10 payments
+
+$payments = $stripe->paymentIntents->all(['limit' => 10]); 
 ?>
 
 <!DOCTYPE html>

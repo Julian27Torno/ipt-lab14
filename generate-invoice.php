@@ -1,28 +1,28 @@
 <?php
-require 'vendor/autoload.php'; // Include Composer autoloader
+require 'vendor/autoload.php'; 
 
-// Load environment variables from the .env file
+
 $dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
 $dotenv->load();
 
-// Set your Stripe secret key
+
 $stripe = new \Stripe\StripeClient($_ENV['STRIPE_SECRET_KEY']);
 
-// Fetch all customers and products
-$customers = $stripe->customers->all(['limit' => 10]); // Fetch first 10 customers
-$products = $stripe->products->all(); // Fetch all products
+
+$customers = $stripe->customers->all(['limit' => 10]); 
+$products = $stripe->products->all(); 
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
-        // Retrieve selected customer ID
+       
         $customerId = $_POST['customer_id'];
 
-        // Create a new invoice
+     
         $invoice = $stripe->invoices->create([
             'customer' => $customerId,
         ]);
 
-        // Add selected products as line items
+      
         if (!empty($_POST['product_ids'])) {
             foreach ($_POST['product_ids'] as $productId) {
                 $prices = $stripe->prices->all(['product' => $productId]);
@@ -38,13 +38,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        // Finalize the invoice
+       
         $stripe->invoices->finalizeInvoice($invoice->id);
 
-        // Retrieve the finalized invoice
+       
         $invoice = $stripe->invoices->retrieve($invoice->id);
 
-        // Display Invoice Links
         echo "<p>Invoice created successfully!</p>";
         echo "<a href='{$invoice->hosted_invoice_url}' target='_blank'>Pay Invoice</a><br>";
         echo "<a href='{$invoice->invoice_pdf}' target='_blank'>Download PDF</a>";
